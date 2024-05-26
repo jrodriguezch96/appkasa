@@ -34,4 +34,5 @@ COPY . .
 RUN cat /etc/ssl/openssl.cnf | grep -A 3 'ssl_conf = ssl_sect'
 
 # Definimos el comando para ejecutar la aplicación
-CMD ["sh", "-c", "python3 -m app.start2 & flask --app api_rest run --host=0.0.0.0 --port=5000"]
+# CMD ["sh", "-c", "python3 -m app.start2 & flask --app api_rest run --host=0.0.0.0 --port=5000"]
+CMD ["sh", "-c", "flask --app api_rest run --host=0.0.0.0 --port=5000"] --port=5000"]
