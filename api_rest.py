@@ -79,6 +79,18 @@ def obtener_informacion_dispositivo(token, device_id):
     data = response.json()
     return json.loads(data['result']['responseData'])
 
+def listar_dispositivos(token):
+    url = f"https://wap.tplinkcloud.com?token={token}"
+    payload = {
+        "method": "getDeviceList"
+    }
+    response = requests.post(url, json=payload)
+    data = response.json()
+    print("data dispositivos", data, flush=True)
+    dispositivos = data['result']['deviceList']
+    print("dispositivos", dispositivos, flush=True)
+    return dispositivos
+
 @app.route('/get_excel_data', methods=['GET'])
 def get_excel_data():
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
@@ -115,6 +127,17 @@ def get_real_time_data():
             return jsonify(real_time_data_converted)
         else:
             return jsonify({'error': 'Datos en tiempo real no disponibles.'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/list_devices', methods=['GET'])
+def list_devices():
+    try:
+        email = "rodriguezjhonatanalexander@gmail.com"
+        password = "CXB4fwviF2pN$7P"
+        token = get_valid_token(email, password)
+        devices = listar_dispositivos(token)
+        return jsonify(devices)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
