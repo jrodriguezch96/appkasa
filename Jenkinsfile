@@ -44,6 +44,8 @@ pipeline {
 
                     if (currentContainerId) {
 						sh "docker stop ${currentContainerId}"
+                        sh 'docker rm $(docker ps -a -f status=exited -q) || true '
+
 					} else {
 						echo "No se encontró ningún contenedor para detener."
 					}
