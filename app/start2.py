@@ -9,6 +9,7 @@ import schedule
 import time
 import numpy as np
 import threading
+import sys
 
 # Configura tus credenciales y el ID de la hoja de cálculo
 SPREADSHEET_ID = '12bKGFHQjl8U49zRiapfDC1gtU4HANSCvEuB_AExxpO8'
@@ -27,6 +28,17 @@ uuid_str = str(uuid.uuid4())
 # Variables globales para almacenar el token y su expiración
 token = None
 token_expiration = None
+
+datesOmmited = [
+    '2024-04-25',
+    '2024-05-06',
+    '2024-05-07',
+    '2024-05-08',
+    '2024-05-09',
+    '2024-05-10',
+    '2024-05-23',
+    '2024-05-24'
+]
 
 def obtener_token(email, password, retries=3, delay=60):
     global token, token_expiration
@@ -79,7 +91,7 @@ def obtener_informacion_dispositivo(token, device_id, year, month, retries=3, de
     }
     for attempt in range(retries):
         response = requests.post(url, json=payload)
-        print("response obtener_informacion_dispositivo...", response.json(), flush=True)
+        # print("response obtener_informacion_dispositivo...", response.json(), flush=True)
         data = response.json()
         consumo = json.loads(data['result']['responseData'])
         return consumo
@@ -125,9 +137,11 @@ def actualizar_consumo(consumption_data):
         date = np.datetime64(date_str)
         energy_wh = day_stat['energy_wh']
         energy_kwh = energy_wh / 1000
+        if date_str in datesOmmited:
+            continue
         if str(date) in df['Fecha'].astype(str).values:
             current_consumption = df.loc[df['Fecha'].dt.date == date, 'Consumo (kWh)'].values[0]
-            print(f"Consumo actual: {current_consumption}, Consumo nuevo: {energy_kwh}", flush=True)
+            # print(f"Consumo actual: {current_consumption}, Consumo nuevo: {energy_kwh}", flush=True)
             if current_consumption != energy_kwh:
                 df.loc[df['Fecha'].dt.date == date, 'Consumo (kWh)'] = energy_kwh
         else:
@@ -164,7 +178,7 @@ def obtener_rango_fechas(token, device_id, start_date, end_date):
 def obtener_y_actualizar():
     try:
         email = "rodriguezjhonatanalexander@gmail.com"
-        password = "LINA210314"
+        password = "CXB4fwviF2pN$7P"
         token = get_valid_token(email, password)
         start_date = datetime(2024, 4, 20)
         end_date = datetime(2024, 5, 25)
@@ -175,9 +189,13 @@ def obtener_y_actualizar():
         print(f"Error al obtener o actualizar datos: {e}", flush=True)
 
 def schedule_task():
-    obtener_y_actualizar()
-    # Programar la siguiente ejecución en 10 minutos (600 segundos)
-    threading.Timer(600, schedule_task).start()
+    try:
+        obtener_y_actualizar()
+        # Programar la siguiente ejecución en 10 minutos (600 segundos)
+        threading.Timer(5, schedule_task).start()
+    except KeyboardInterrupt:
+        print("Programa interrumpido por el usuario. Saliendo...")
+        sys.exit()
 
 # Iniciar la primera ejecución
 schedule_task()
