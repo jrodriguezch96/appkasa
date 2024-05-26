@@ -41,6 +41,7 @@ datesOmmited = [
 ]
 
 def obtener_token(email, password, retries=3, delay=60):
+    print("Entra a obtener_token", flush=True)
     global token, token_expiration
     url = "https://wap.tplinkcloud.com"
     payload = {
@@ -54,7 +55,9 @@ def obtener_token(email, password, retries=3, delay=60):
     }
     for attempt in range(retries):
         response = requests.post(url, json=payload)
+        print("response obtener_token...", response.json(), flush=True)
         data = response.json()
+        print("data obtener_token...", data, flush=True)
         if data['error_code'] == 0:
             token = data['result']['token']
             token_expiration = datetime.now() + timedelta(hours=1)
@@ -92,7 +95,9 @@ def obtener_informacion_dispositivo(token, device_id, year, month, retries=3, de
     for attempt in range(retries):
         response = requests.post(url, json=payload)
         # print("response obtener_informacion_dispositivo...", response.json(), flush=True)
+        print("Obteniendo información del dispositivo...", response, flush=True)
         data = response.json()
+        print("data obtener_informacion_dispositivo...", data, flush=True)
         consumo = json.loads(data['result']['responseData'])
         return consumo
     raise Exception("Número máximo de intentos excedido. Por favor, inténtelo de nuevo más tarde.")
@@ -180,8 +185,12 @@ def obtener_y_actualizar():
         email = "rodriguezjhonatanalexander@gmail.com"
         password = "CXB4fwviF2pN$7P"
         token = get_valid_token(email, password)
-        start_date = datetime(2024, 4, 20)
-        end_date = datetime(2024, 5, 25)
+        
+        # Fecha de hoy
+        end_date = datetime.now()
+        # Fecha de 30 días atrás
+        start_date = end_date - timedelta(days=30)
+        print(f"Obteniendo datos de consumo desde {start_date} hasta {end_date}...", flush=True)
         consumption_data = obtener_rango_fechas(token, "8006DABB0462CC97428C72D3DA80FCBA1EC0F1A4", start_date, end_date)
         actualizar_consumo(consumption_data)
         print("Datos actualizados en Google Sheets.", flush=True)
@@ -189,6 +198,7 @@ def obtener_y_actualizar():
         print(f"Error al obtener o actualizar datos: {e}", flush=True)
 
 def schedule_task():
+    print("Inicio de la tarea programada...", flush=True)
     try:
         obtener_y_actualizar()
         # Programar la siguiente ejecución en 10 minutos (600 segundos)
