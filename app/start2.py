@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 import schedule
 import time
 import numpy as np
+import threading
 
 # Configura tus credenciales y el ID de la hoja de cálculo
 SPREADSHEET_ID = '12bKGFHQjl8U49zRiapfDC1gtU4HANSCvEuB_AExxpO8'
@@ -59,16 +60,13 @@ def get_valid_token(email, password):
         token = obtener_token(email, password)
     return token
 
-def obtener_informacion_dispositivo(token, device_id, year, month):
+def obtener_informacion_dispositivo(token, device_id, year, month, retries=3, delay=60):
     url = f"https://wap.tplinkcloud.com?token={token}"
     payload = {
         "method": "passthrough",
         "params": {
             "deviceId": device_id,
             "requestData": json.dumps({
-                "system": {
-                    "get_sysinfo": None
-                },
                 "emeter": {
                     "get_realtime": None,
                     "get_daystat": {
@@ -79,11 +77,13 @@ def obtener_informacion_dispositivo(token, device_id, year, month):
             })
         }
     }
-    response = requests.post(url, json=payload)
-    print("response obtener_informacion_dispositivo...", response.json(), flush=True)
-    data = response.json()
-    consumo = json.loads(data['result']['responseData'])
-    return consumo
+    for attempt in range(retries):
+        response = requests.post(url, json=payload)
+        print("response obtener_informacion_dispositivo...", response.json(), flush=True)
+        data = response.json()
+        consumo = json.loads(data['result']['responseData'])
+        return consumo
+    raise Exception("Número máximo de intentos excedido. Por favor, inténtelo de nuevo más tarde.")
 
 def leer_datos():
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
@@ -127,8 +127,9 @@ def actualizar_consumo(consumption_data):
         energy_kwh = energy_wh / 1000
         if str(date) in df['Fecha'].astype(str).values:
             current_consumption = df.loc[df['Fecha'].dt.date == date, 'Consumo (kWh)'].values[0]
+            print(f"Consumo actual: {current_consumption}, Consumo nuevo: {energy_kwh}", flush=True)
             if current_consumption != energy_kwh:
-                df.loc[df['Fecha'].dt.date == date, 'Consumo (kWh)'] += energy_kwh
+                df.loc[df['Fecha'].dt.date == date, 'Consumo (kWh)'] = energy_kwh
         else:
             new_rows.append({'Fecha': date, 'Consumo (kWh)': energy_kwh})
     
@@ -173,12 +174,10 @@ def obtener_y_actualizar():
     except Exception as e:
         print(f"Error al obtener o actualizar datos: {e}", flush=True)
 
-obtener_y_actualizar()
+def schedule_task():
+    obtener_y_actualizar()
+    # Programar la siguiente ejecución en 10 minutos (600 segundos)
+    threading.Timer(600, schedule_task).start()
 
-# Programar la tarea para ejecutarse cada 10 minutos
-schedule.every(10).minutes.do(obtener_y_actualizar)
-
-# Mantener el script en ejecución
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+# Iniciar la primera ejecución
+schedule_task()

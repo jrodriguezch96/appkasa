@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from . import celery
+from requests.adapters import HTTPAdapter
+from urllib3 import PoolManager
+import ssl
 
 # Configura tus credenciales y el ID de la hoja de cálculo
 SPREADSHEET_ID = '12bKGFHQjl8U49zRiapfDC1gtU4HANSCvEuB_AExxpO8'
@@ -25,6 +27,17 @@ uuid_str = str(uuid.uuid4())
 token = None
 token_expiration = None
 
+class SSLAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        kwargs['ssl_context'] = context
+        return super().init_poolmanager(*args, **kwargs)
+
+session = requests.Session()
+session.mount('https://', SSLAdapter())
+
 def obtener_token(email, password, retries=3, delay=60):
     global token, token_expiration
     url = "https://wap.tplinkcloud.com"
@@ -38,7 +51,7 @@ def obtener_token(email, password, retries=3, delay=60):
         }
     }
     for attempt in range(retries):
-        response = requests.post(url, json=payload)
+        response = session.post(url, json=payload, verify=False)
         data = response.json()
         if data['error_code'] == 0:
             token = data['result']['token']
@@ -70,11 +83,10 @@ def obtener_informacion_dispositivo(token, device_id):
             })
         }
     }
-    response = requests.post(url, json=payload)
+    response = session.post(url, json=payload, verify=False)
     data = response.json()
     return json.loads(data['result']['responseData'])
 
-@celery.task
 def obtener_y_actualizar():
     try:
         email = "rodriguezjhonatanalexander@gmail.com"
@@ -114,12 +126,3 @@ def actualizar_consumo_google_sheets(data):
         spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME,
         valueInputOption="RAW", body=body).execute()
     print(f"{result.get('updates').get('updatedCells')} celdas actualizadas.")
-
-# Programar la tarea para ejecutarse cada 10 minutos
-celery.conf.beat_schedule = {
-    'obtener-y-actualizar-cada-10-minutos': {
-        'task': 'app.tasks.obtener_y_actualizar',
-        'schedule': 600.0,  # cada 10 minutos
-    },
-}
-celery.conf.timezone = 'UTC'
