@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 import requests
 import json
 import uuid
@@ -10,6 +11,8 @@ import numpy as np
 import time
 
 app = Flask(__name__)
+
+CORS(app)
 
 # Configura tus credenciales y el ID de la hoja de cálculo
 SPREADSHEET_ID = '12bKGFHQjl8U49zRiapfDC1gtU4HANSCvEuB_AExxpO8'

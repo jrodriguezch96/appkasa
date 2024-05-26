@@ -20,6 +20,7 @@ click-repl==0.3.0
 colorama==0.4.6
 cryptography==42.0.7
 Flask==3.0.3
+Flask-CORS==4.0.1
 frozenlist==1.4.1
 google-api-core==2.19.0
 google-api-python-client==2.130.0
