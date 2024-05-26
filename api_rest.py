@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
 import json
@@ -95,12 +95,39 @@ def listar_dispositivos(token):
     # print("dispositivos", dispositivos, flush=True)
     return dispositivos
 
-@app.route('/get_excel_data', methods=['GET'])
-def get_excel_data():
+def leer_datos():
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
     values = result.get('values', [])
-    df = pd.DataFrame(values, columns=['Fecha', 'Consumo'])
-    return jsonify(df.to_dict(orient='records'))
+    if not values:
+        return pd.DataFrame(columns=['Fecha', 'Consumo'])
+    else:
+        df = pd.DataFrame(values[1:], columns=values[0])
+        df['Consumo'] = df['Consumo'].str.replace(',', '.').astype(float)
+        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce').dt.strftime('%Y-%m-%d')
+        if df['Fecha'].isnull().any():
+            print("Error al convertir algunas fechas. Verifica los datos en la hoja de cálculo.", flush=True)
+        df = df.dropna(subset=['Fecha'])
+        return df
+
+@app.route('/get_excel_data', methods=['GET'])
+def get_excel_data():
+    try:
+        fecha_desde = request.args.get('fecha_desde')
+        fecha_hasta = request.args.get('fecha_hasta')
+        
+        df = leer_datos()
+
+        if fecha_desde:
+            fecha_desde = datetime.strptime(fecha_desde, '%Y-%m-%d')
+            df = df[df['Fecha'] >= fecha_desde.strftime('%Y-%m-%d')]
+
+        if fecha_hasta:
+            fecha_hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d')
+            df = df[df['Fecha'] <= fecha_hasta.strftime('%Y-%m-%d')]
+
+        return jsonify(df.to_dict(orient='records'))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/get_real_time_data', methods=['GET'])
 def get_real_time_data():
