@@ -49,7 +49,7 @@ pipeline {
 					} else {
 						echo "No se encontró ningún contenedor para detener."
 					}
-                    sh "docker-compose up --build ."
+                    sh "docker-compose up --build -d"
                     
                 }
             }
