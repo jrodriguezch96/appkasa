@@ -62,8 +62,9 @@ def get_valid_token(email, password):
         token = obtener_token(email, password)
     return token
 
-def obtener_informacion_dispositivo(token, device_id):
-    url = f"https://wap.tplinkcloud.com?token={token}"
+def obtener_informacion_dispositivo(token, app_server_url, device_id):
+    url = f"{app_server_url}?token={token}"
+    print("url obtener informacion dispositivo", url, flush=True)
     payload = {
         "method": "passthrough",
         "params": {
@@ -86,9 +87,9 @@ def listar_dispositivos(token):
     }
     response = requests.post(url, json=payload)
     data = response.json()
-    print("data dispositivos", data, flush=True)
+    # print("data dispositivos", data, flush=True)
     dispositivos = data['result']['deviceList']
-    print("dispositivos", dispositivos, flush=True)
+    # print("dispositivos", dispositivos, flush=True)
     return dispositivos
 
 @app.route('/get_excel_data', methods=['GET'])
@@ -104,8 +105,19 @@ def get_real_time_data():
         email = "rodriguezjhonatanalexander@gmail.com"
         password = "CXB4fwviF2pN$7P"
         token = get_valid_token(email, password)
+        dispositivos = listar_dispositivos(token)
         device_id = "8006DABB0462CC97428C72D3DA80FCBA1EC0F1A4"
-        data = obtener_informacion_dispositivo(token, device_id)
+        app_server_url = None
+        
+        for dispositivo in dispositivos:
+            if dispositivo["deviceId"] == device_id:
+                app_server_url = dispositivo["appServerUrl"]
+                break
+        
+        if app_server_url is None:
+            return jsonify({'error': 'Dispositivo no encontrado.'}), 404
+
+        data = obtener_informacion_dispositivo(token, app_server_url, device_id)
         
         if 'emeter' in data and 'get_realtime' in data['emeter']:
             real_time_data = data['emeter']['get_realtime']

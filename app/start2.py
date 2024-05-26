@@ -75,8 +75,9 @@ def get_valid_token(email, password):
         token = obtener_token(email, password)
     return token
 
-def obtener_informacion_dispositivo(token, device_id, year, month, retries=3, delay=60):
-    url = f"https://wap.tplinkcloud.com?token={token}"
+def obtener_informacion_dispositivo(token, device_id, year, month, app_server_url, retries=3, delay=60):
+    url = f"{app_server_url}?token={token}"
+    print("url obtener informacion dispositivo", url, flush=True)
     payload = {
         "method": "passthrough",
         "params": {
@@ -101,6 +102,18 @@ def obtener_informacion_dispositivo(token, device_id, year, month, retries=3, de
         consumo = json.loads(data['result']['responseData'])
         return consumo
     raise Exception("Número máximo de intentos excedido. Por favor, inténtelo de nuevo más tarde.")
+
+def listar_dispositivos(token):
+    url = f"https://wap.tplinkcloud.com?token={token}"
+    payload = {
+        "method": "getDeviceList"
+    }
+    response = requests.post(url, json=payload)
+    data = response.json()
+    # print("data dispositivos", data, flush=True)
+    dispositivos = data['result']['deviceList']
+    # print("dispositivos", dispositivos, flush=True)
+    return dispositivos
 
 def leer_datos():
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
@@ -169,7 +182,18 @@ def obtener_rango_fechas(token, device_id, start_date, end_date):
     while current_date <= end_date:
         year = current_date.year
         month = current_date.month
-        infoEnchufe = obtener_informacion_dispositivo(token, device_id, year, month)
+        dispositivos = listar_dispositivos(token)
+        app_server_url = None
+        
+        for dispositivo in dispositivos:
+            if dispositivo["deviceId"] == device_id:
+                app_server_url = dispositivo["appServerUrl"]
+                break
+        
+        if app_server_url is None:
+            print({'error': 'Dispositivo no encontrado.'})
+        
+        infoEnchufe = obtener_informacion_dispositivo(token, device_id, year, month, app_server_url)
         print(f"Obteniendo datos para {year}-{month:02d}...", flush=True)
         if 'emeter' in infoEnchufe and 'get_daystat' in infoEnchufe['emeter']:
             day_stats = infoEnchufe['emeter']['get_daystat']['day_list']
