@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 from requests.adapters import HTTPAdapter
 from urllib3 import PoolManager
 import ssl
+import time
 
 # Configura tus credenciales y el ID de la hoja de cálculo
 SPREADSHEET_ID = '12bKGFHQjl8U49zRiapfDC1gtU4HANSCvEuB_AExxpO8'

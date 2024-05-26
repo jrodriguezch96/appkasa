@@ -192,7 +192,7 @@ def schedule_task():
     try:
         obtener_y_actualizar()
         # Programar la siguiente ejecución en 10 minutos (600 segundos)
-        threading.Timer(5, schedule_task).start()
+        threading.Timer(600, schedule_task).start()
     except KeyboardInterrupt:
         print("Programa interrumpido por el usuario. Saliendo...")
         sys.exit()
