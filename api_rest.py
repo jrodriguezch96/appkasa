@@ -90,7 +90,7 @@ def get_excel_data():
 def get_real_time_data():
     try:
         email = "rodriguezjhonatanalexander@gmail.com"
-        password = "LINA210314"
+        password = "CXB4fwviF2pN$7P"
         token = get_valid_token(email, password)
         device_id = "8006DABB0462CC97428C72D3DA80FCBA1EC0F1A4"
         data = obtener_informacion_dispositivo(token, device_id)
