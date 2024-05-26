@@ -216,6 +216,7 @@ def obtener_y_actualizar():
         start_date = end_date - timedelta(days=30)
         print(f"Obteniendo datos de consumo desde {start_date} hasta {end_date}...", flush=True)
         consumption_data = obtener_rango_fechas(token, "8006DABB0462CC97428C72D3DA80FCBA1EC0F1A4", start_date, end_date)
+        print("consumption_data", consumption_data, flush=True)
         actualizar_consumo(consumption_data)
         print("Datos actualizados en Google Sheets.", flush=True)
     except Exception as e:
@@ -223,13 +224,17 @@ def obtener_y_actualizar():
 
 def schedule_task():
     print("Inicio de la tarea programada...", flush=True)
-    try:
-        obtener_y_actualizar()
-        # Programar la siguiente ejecución en 10 minutos (600 segundos)
-        threading.Timer(600, schedule_task).start()
-    except KeyboardInterrupt:
-        print("Programa interrumpido por el usuario. Saliendo...")
-        sys.exit()
+    obtener_y_actualizar()
 
-# Iniciar la primera ejecución
+# Ejecutar la tarea inmediatamente
 schedule_task()
+
+# Programar la ejecución cada 10 minutos
+schedule.every(10).minutes.do(schedule_task)
+
+try:
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("Programa interrumpido por el usuario. Saliendo...")
