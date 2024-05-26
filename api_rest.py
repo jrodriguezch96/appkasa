@@ -62,8 +62,9 @@ def get_valid_token(email, password):
         token = obtener_token(email, password)
     return token
 
-def obtener_informacion_dispositivo(token, device_id):
-    url = f"https://wap.tplinkcloud.com?token={token}"
+def obtener_informacion_dispositivo(token, app_server_url, device_id):
+    url = f"{app_server_url}?token={token}"
+    print("url obtener informacion dispositivo", url, flush=True)
     payload = {
         "method": "passthrough",
         "params": {
@@ -79,6 +80,18 @@ def obtener_informacion_dispositivo(token, device_id):
     data = response.json()
     return json.loads(data['result']['responseData'])
 
+def listar_dispositivos(token):
+    url = f"https://wap.tplinkcloud.com?token={token}"
+    payload = {
+        "method": "getDeviceList"
+    }
+    response = requests.post(url, json=payload)
+    data = response.json()
+    # print("data dispositivos", data, flush=True)
+    dispositivos = data['result']['deviceList']
+    # print("dispositivos", dispositivos, flush=True)
+    return dispositivos
+
 @app.route('/get_excel_data', methods=['GET'])
 def get_excel_data():
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
@@ -92,8 +105,19 @@ def get_real_time_data():
         email = "rodriguezjhonatanalexander@gmail.com"
         password = "CXB4fwviF2pN$7P"
         token = get_valid_token(email, password)
+        dispositivos = listar_dispositivos(token)
         device_id = "8006DABB0462CC97428C72D3DA80FCBA1EC0F1A4"
-        data = obtener_informacion_dispositivo(token, device_id)
+        app_server_url = None
+        
+        for dispositivo in dispositivos:
+            if dispositivo["deviceId"] == device_id:
+                app_server_url = dispositivo["appServerUrl"]
+                break
+        
+        if app_server_url is None:
+            return jsonify({'error': 'Dispositivo no encontrado.'}), 404
+
+        data = obtener_informacion_dispositivo(token, app_server_url, device_id)
         
         if 'emeter' in data and 'get_realtime' in data['emeter']:
             real_time_data = data['emeter']['get_realtime']
@@ -115,6 +139,17 @@ def get_real_time_data():
             return jsonify(real_time_data_converted)
         else:
             return jsonify({'error': 'Datos en tiempo real no disponibles.'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/list_devices', methods=['GET'])
+def list_devices():
+    try:
+        email = "rodriguezjhonatanalexander@gmail.com"
+        password = "CXB4fwviF2pN$7P"
+        token = get_valid_token(email, password)
+        devices = listar_dispositivos(token)
+        return jsonify(devices)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
