@@ -95,7 +95,7 @@ def listar_dispositivos(token):
     # print("dispositivos", dispositivos, flush=True)
     return dispositivos
 
-@app.route('/get_excel_data', methods=['GET'])
+@app.route('/get_excel_data_2', methods=['GET'])
 def get_excel_data():
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
     values = result.get('values', [])
@@ -112,7 +112,7 @@ def get_excel_data():
 
     return jsonify(df.to_dict(orient='records'))
 
-@app.route('/get_real_time_data', methods=['GET'])
+@app.route('/get_real_time_data_2', methods=['GET'])
 def get_real_time_data():
     try:
         email = "rodriguezjhonatanalexander@gmail.com"
@@ -155,7 +155,7 @@ def get_real_time_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/list_devices', methods=['GET'])
+@app.route('/list_devices_2', methods=['GET'])
 def list_devices():
     try:
         email = "rodriguezjhonatanalexander@gmail.com"
